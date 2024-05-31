@@ -8,11 +8,13 @@ const ArrayModule = @import("array_module.zig").ArrayModule;
 const WindowManager = @import("WindowManager.zig");
 const Player = @import("Player.zig");
 const Cube = @import("Cube.zig");
+const World = @import("World.zig");
 
 pub var game: Game = undefined;
 
 modules: struct {
     windowManager: WindowManager,
+    world: World,
     player: Player,
     cubes: ArrayModule(Cube),
 },
@@ -38,6 +40,7 @@ pub fn init() !void {
 
     game.modules = .{
         .windowManager = WindowManager.init(.windowed),
+        .world = World.initIceland(),
         .player = undefined,
         .cubes = ArrayModule(Cube).init(game.allocator),
     };
