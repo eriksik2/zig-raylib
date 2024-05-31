@@ -13,12 +13,12 @@ pub fn main() !void {
     rl.disableCursor();
     rl.setTargetFPS(60);
 
-    Game.init();
+    try Game.init();
 
     while (!rl.windowShouldClose()) {
         // Update
 
-        Game.game.update();
+        try Game.game.update();
 
         // Draw
         rl.beginDrawing();
@@ -26,7 +26,7 @@ pub fn main() !void {
 
         rl.clearBackground(rl.Color.white);
 
-        Game.game.draw();
+        try Game.game.draw();
 
         rl.drawFPS(0, 0);
     }

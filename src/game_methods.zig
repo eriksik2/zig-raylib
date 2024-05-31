@@ -3,33 +3,17 @@ const rl = @import("raylib");
 
 pub fn On(comptime Game: type) type {
     return struct {
-        pub fn update(self: *Game) void {
+        pub fn update(self: *Game) !void {
             const ti: []const std.builtin.Type.StructField = @typeInfo(@TypeOf(self.modules)).Struct.fields;
             inline for (ti) |field| {
-                if (IterableElem(field.type)) |ElemType| {
-                    const isArray = @typeInfo(field.type) == .Array;
-                    if (@hasDecl(ElemType, "update")) {
-                        const slice = if (isArray) &@field(self.modules, field.name) else @field(self.modules, field.name);
-                        for (slice) |*elem| {
-                            elem.update();
-                        }
-                    }
-                } else if (@hasField(field.type, "items")) {
-                    const ItemsType = std.meta.fieldInfo(field.type, .items).type;
-                    if (IterableElem(ItemsType)) |ElemType| {
-                        if (@hasDecl(ElemType, "update")) {
-                            for (@field(self.modules, field.name)) |*elem| {
-                                elem.update();
-                            }
-                        }
-                    }
-                } else if (@hasDecl(field.type, "update")) {
-                    @field(self.modules, field.name).update();
+                if (@hasDecl(field.type, "update")) {
+                    const res = @field(self.modules, field.name).update();
+                    if (@typeInfo(@TypeOf(res)) == .ErrorUnion) try res;
                 }
             }
         }
 
-        pub fn draw(self: *Game) void {
+        pub fn draw(self: *Game) !void {
             if (self.camera == null) {
                 return;
             }
@@ -38,25 +22,9 @@ pub fn On(comptime Game: type) type {
 
             const ti: []const std.builtin.Type.StructField = @typeInfo(@TypeOf(self.modules)).Struct.fields;
             inline for (ti) |field| {
-                if (IterableElem(field.type)) |ElemType| {
-                    const isArray = @typeInfo(field.type) == .Array;
-                    if (@hasDecl(ElemType, "draw")) {
-                        const slice = if (isArray) &@field(self.modules, field.name) else @field(self.modules, field.name);
-                        for (slice) |*elem| {
-                            elem.draw();
-                        }
-                    }
-                } else if (@hasField(field.type, "items")) {
-                    const ItemsType = std.meta.fieldInfo(field.type, .items).type;
-                    if (IterableElem(ItemsType)) |ElemType| {
-                        if (@hasDecl(ElemType, "draw")) {
-                            for (@field(self.modules, field.name)) |*elem| {
-                                elem.draw();
-                            }
-                        }
-                    }
-                } else if (@hasDecl(field.type, "draw")) {
-                    @field(self.modules, field.name).draw();
+                if (@hasDecl(field.type, "draw")) {
+                    const res = @field(self.modules, field.name).draw();
+                    if (@typeInfo(@TypeOf(res)) == .ErrorUnion) try res;
                 }
             }
         }
