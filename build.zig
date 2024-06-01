@@ -22,20 +22,20 @@ pub fn build(b: *std.Build) void {
         .optimize = optimize,
     });
 
+    // raylib dependency
     const raylib_dep = b.dependency("raylib-zig", .{
         .target = target,
         .optimize = optimize,
     });
+    exe.linkLibrary(raylib_dep.artifact("raylib")); // raylib C library
+    exe.root_module.addImport("raylib", raylib_dep.module("raylib")); // main raylib module
+    exe.root_module.addImport("raylib-math", raylib_dep.module("raylib-math")); // raymath module
+    exe.root_module.addImport("rlgl", raylib_dep.module("rlgl")); // rlgl module
 
-    const raylib = raylib_dep.module("raylib"); // main raylib module
-    const raylib_math = raylib_dep.module("raylib-math"); // raymath module
-    const rlgl = raylib_dep.module("rlgl"); // rlgl module
-    const raylib_artifact = raylib_dep.artifact("raylib"); // raylib C library
-
-    exe.linkLibrary(raylib_artifact);
-    exe.root_module.addImport("raylib", raylib);
-    exe.root_module.addImport("raylib-math", raylib_math);
-    exe.root_module.addImport("rlgl", rlgl);
+    // znoise dependency
+    const znoise = b.dependency("znoise", .{});
+    exe.root_module.addImport("znoise", znoise.module("root"));
+    exe.linkLibrary(znoise.artifact("FastNoiseLite"));
 
     // This declares intent for the executable to be installed into the
     // standard location when the user invokes the "install" step (the default

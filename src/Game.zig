@@ -6,14 +6,16 @@ const Game = @This();
 const ArrayModule = @import("array_module.zig").ArrayModule;
 
 const WindowManager = @import("WindowManager.zig");
+const Skybox = @import("skybox/Skybox.zig");
+const World = @import("World.zig");
 const Player = @import("Player.zig");
 const Cube = @import("Cube.zig");
-const World = @import("World.zig");
 
 pub var game: Game = undefined;
 
 modules: struct {
     windowManager: WindowManager,
+    skybox: Skybox,
     world: World,
     player: Player,
     cubes: ArrayModule(Cube),
@@ -40,25 +42,22 @@ pub fn init() !void {
 
     game.modules = .{
         .windowManager = WindowManager.init(.windowed),
-        .world = World.initIceland(),
+        .skybox = try Skybox.init(),
+        .world = try World.initRandom(.{}),
         .player = undefined,
         .cubes = ArrayModule(Cube).init(game.allocator),
     };
 
     game.modules.player = .{
         .camera = .{
-            .position = rl.Vector3.init(0, 0, 0),
-            .target = rl.Vector3.init(0, 1, 0),
-            .up = rl.Vector3.init(0, 0, 1),
+            .position = rl.Vector3.init(5, 0, 5),
+            .target = rl.Vector3.init(6, -0.1, 6),
+            .up = rl.Vector3.init(0, 1, 0),
             .fovy = 65.0,
             .projection = .camera_perspective,
         },
     };
     game.camera = &game.modules.player.camera;
-
-    try game.modules.cubes.array.append(Cube{ .position = rl.Vector3.init(0, 3, 0) });
-    try game.modules.cubes.array.append(Cube{ .position = rl.Vector3.init(0, 3, -3) });
-    try game.modules.cubes.array.append(Cube{ .position = rl.Vector3.init(0, 3, 3) });
 }
 
 pub usingnamespace @import("game_methods.zig").On(@This());
