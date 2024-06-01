@@ -26,9 +26,12 @@ pub fn init() !Self {
 
     model.materials[0].shader = shader;
 
-    const image = rl.loadImage("resources/skybox.png");
+    var image = rl.loadImage("resources/luthagsesplanaden.png");
     defer rl.unloadImage(image);
-    model.materials[0].maps[@intFromEnum(rl.MaterialMapIndex.material_map_cubemap)].texture = rl.loadTextureCubemap(image, @intFromEnum(rl.CubemapLayout.cubemap_layout_auto_detect));
+
+    image.setFormat(@intFromEnum(rl.PixelFormat.pixelformat_uncompressed_r8g8b8));
+
+    model.materials[0].maps[@intFromEnum(rl.MaterialMapIndex.material_map_cubemap)].texture = rl.loadTextureCubemap(image, @intFromEnum(rl.CubemapLayout.cubemap_layout_cross_four_by_three));
 
     return Self{ .model = model };
 }

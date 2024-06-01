@@ -76,14 +76,14 @@ pub fn initRandom(opts: struct {
     var mesh = rl.genMeshHeightmap(image, rl.Vector3.init(@floatFromInt(opts.size.x), 12, @floatFromInt(opts.size.y)));
     rl.genMeshTangents(&mesh);
 
-    // Scale the image so that it looks nicer when used as texture
+    // Scale the image so that it looks nicer when used as textures
     const imgData = @as([*]u8, @ptrCast(image.data));
     for (0..len) |i| {
         imgData[i] = @divTrunc(imgData[i], 2) + 64;
     }
 
     const model = rl.loadModelFromMesh(mesh);
-    model.materials[0].maps[@intFromEnum(rl.MaterialMapIndex.material_map_albedo)].color = rl.Color.init(0, 255, 0, 255);
+    model.materials[0].maps[@intFromEnum(rl.MaterialMapIndex.material_map_albedo)].color = rl.Color.init(136, 166, 90, 255);
     model.materials[0].maps[@intFromEnum(rl.MaterialMapIndex.material_map_albedo)].texture = rl.loadTextureFromImage(image);
 
     return Self{
