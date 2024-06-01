@@ -17,6 +17,7 @@ pub fn main() !void {
 
     while (!rl.windowShouldClose()) {
         // Update
+        _ = Game.game.allocators.frame_allocator.reset(.retain_capacity);
 
         try Game.game.update();
 

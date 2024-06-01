@@ -9,6 +9,7 @@ const WindowManager = @import("WindowManager.zig");
 const Skybox = @import("skybox/Skybox.zig");
 const World = @import("World.zig");
 const Player = @import("Player.zig");
+const Pawn = @import("Pawn.zig");
 const Cube = @import("Cube.zig");
 
 pub var game: Game = undefined;
@@ -18,6 +19,7 @@ modules: struct {
     skybox: Skybox,
     world: World,
     player: Player,
+    pawn: Pawn,
     cubes: ArrayModule(Cube),
 },
 
@@ -45,15 +47,18 @@ pub fn init() !void {
         .skybox = try Skybox.init(),
         .world = try World.initRandom(.{}),
         .player = undefined,
+        .pawn = Pawn.init(.{
+            .position = rl.Vector3.init(40, 1, 40),
+        }),
         .cubes = ArrayModule(Cube).init(game.allocator),
     };
 
     game.modules.player = .{
         .camera = .{
-            .position = rl.Vector3.init(5, 0, 5),
-            .target = rl.Vector3.init(6, -0.1, 6),
+            .position = rl.Vector3.init(35, 30, 35),
+            .target = rl.Vector3.init(36, 29, 36),
             .up = rl.Vector3.init(0, 1, 0),
-            .fovy = 65.0,
+            .fovy = 75.0,
             .projection = .camera_perspective,
         },
     };
