@@ -25,8 +25,9 @@ pub fn init(opts: struct {
 
 pub fn update(self: *Self) !void {
     self.position.y = game.modules.world.getY(self.position.x, self.position.z);
+    self.pathfinder.updateOrigin(self.position);
 
-    var playerPos = game.modules.player.camera.position;
+    var playerPos = game.modules.player.getFootPosition();
     playerPos.y = game.modules.world.getY(playerPos.x, playerPos.z);
     self.pathfinder.updateTarget(playerPos);
 
@@ -34,8 +35,6 @@ pub fn update(self: *Self) !void {
         const dir = rlm.vector3Normalize(rlm.vector3Subtract(point, self.position));
         self.position = rlm.vector3Add(self.position, rlm.vector3Scale(dir, self.speed));
     }
-
-    self.pathfinder.updateOrigin(self.position);
 }
 
 pub fn draw(self: *const Self) void {

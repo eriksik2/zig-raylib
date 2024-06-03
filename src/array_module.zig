@@ -15,17 +15,19 @@ pub fn ArrayModule(comptime Type: type) type {
         }
 
         pub usingnamespace if (hasUpdate) struct {
-            pub fn update(self: *Self) void {
+            pub fn update(self: *Self) !void {
                 for (self.array.items) |*item| {
-                    item.update();
+                    const res = item.update();
+                    if (@typeInfo(@TypeOf(res)) == .ErrorUnion) try res;
                 }
             }
         } else struct {};
 
         pub usingnamespace if (hasDraw) struct {
-            pub fn draw(self: *Self) void {
+            pub fn draw(self: *Self) !void {
                 for (self.array.items) |*item| {
-                    item.draw();
+                    const res = item.draw();
+                    if (@typeInfo(@TypeOf(res)) == .ErrorUnion) try res;
                 }
             }
         } else struct {};

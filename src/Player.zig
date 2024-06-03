@@ -4,6 +4,9 @@ const rlm = @import("raylib-math");
 
 const game = &@import("Game.zig").game;
 
+const PLAYER_HEIGHT = 5.0;
+const GRAVITY = rl.Vector3.init(0.0, -0.1, 0.0);
+
 const Self = @This();
 
 state: enum {
@@ -49,10 +52,11 @@ pub fn update(self: *Self) !void {
     self.updateMovement();
 }
 
-fn updatePhysics(self: *Self) void {
-    const PLAYER_HEIGHT = 5.0;
-    const GRAVITY = rl.Vector3.init(0.0, -0.1, 0.0);
+pub fn getFootPosition(self: *Self) rl.Vector3 {
+    return rlm.vector3Add(self.camera.position, rl.Vector3.init(0.0, -PLAYER_HEIGHT, 0.0));
+}
 
+fn updatePhysics(self: *Self) void {
     const shouldCollide = self.mode == .walk;
     const shouldFall = self.mode == .walk;
 

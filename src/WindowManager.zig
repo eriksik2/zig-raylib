@@ -8,13 +8,24 @@ const State = enum {
     windowed,
 };
 
-state: State,
+const MouseState = enum {
+    shown,
+    locked,
+};
 
-pub fn init(state: State) Self {
+state: State,
+mouse: MouseState,
+
+pub fn init(opts: struct {
+    state: State = .windowed,
+    mouse: MouseState = .shown,
+}) Self {
     var self = Self{
-        .state = state,
+        .state = opts.state,
+        .mouse = opts.mouse,
     };
-    self.setState(state);
+    self.setState(opts.state);
+    self.setMouseState(opts.mouse);
     return self;
 }
 
@@ -55,4 +66,16 @@ pub fn setState(self: *Self, state: State) void {
         },
     }
     self.state = state;
+}
+
+pub fn setMouseState(self: *Self, state: MouseState) void {
+    switch (state) {
+        .shown => {
+            rl.enableCursor();
+        },
+        .locked => {
+            rl.disableCursor();
+        },
+    }
+    self.mouse = state;
 }

@@ -7,11 +7,12 @@ const Self = @This();
 const game = &@import("Game.zig").game;
 
 const min_distance = 0.1;
-const min_target_distance = 2.0;
+const min_target_distance = 40.0;
 
 origin: rl.Vector3,
 target: ?rl.Vector3 = null,
 
+path_dirty: bool = false,
 path_origin: ?rl.Vector3 = null,
 path_target: ?rl.Vector3 = null,
 path: ?[]rl.Vector3 = null,
@@ -53,7 +54,7 @@ pub fn updateOrigin(self: *Self, newOrigin: rl.Vector3) void {
     if (self.target == null) return;
     if (self.path == null) return;
 
-    const npp = (self.getNextPathPoint() catch unreachable).?;
+    const npp = (self.getNextPathPoint() catch unreachable) orelse return;
     const newDistance = rlm.vector3DistanceSqr(newOrigin, npp);
     if (newDistance < min_distance) {
         self.increasePathProgress();
@@ -68,8 +69,8 @@ pub fn updateOrigin(self: *Self, newOrigin: rl.Vector3) void {
 pub fn updateTarget(self: *Self, newTarget: rl.Vector3) void {
     self.target = newTarget;
     if (self.path_target) |oldTarget| {
-        if (rlm.vector3DistanceSqr(oldTarget, newTarget) > min_distance) {
-            self.clearPath();
+        if (rlm.vector3DistanceSqr(oldTarget, newTarget) > min_target_distance) {
+            self.path_dirty = true;
         }
     }
 }
@@ -78,10 +79,13 @@ pub fn getNextPathPoint(self: *Self) !?rl.Vector3 {
     if (self.target == null) {
         return null;
     }
-    if (self.path == null) {
-        if (rlm.vector3DistanceSqr(self.origin, self.target.?) < min_target_distance) {
-            return null;
+    if (rlm.vector3DistanceSqr(self.origin, self.target.?) < min_target_distance) {
+        if (self.path != null) {
+            self.clearPath();
         }
+        return null;
+    }
+    if (self.path_dirty or self.path == null) {
         try self.calculatePath();
         if (self.path == null) return null;
     }
@@ -107,13 +111,15 @@ fn clearPath(self: *Self) void {
 
 fn calculatePath(self: *Self) !void {
     if (self.target == null) unreachable;
-    if (self.path != null) unreachable;
 
-    var newPath = try self.astar.findPath(game.allocator, self.origin, self.target.?);
+    const newPath = try self.astar.findPath(game.allocator, self.origin, self.target.?);
 
     if (newPath == null) {
-        newPath = try game.allocator.alloc(rl.Vector3, 1);
-        newPath.?[0] = self.target.?;
+        return;
+    }
+
+    if (self.path) |_| {
+        self.clearPath();
     }
 
     self.path = newPath;
@@ -126,31 +132,39 @@ const AStar = struct {
     const Pos = struct {
         x: i32,
         z: i32,
+
+        pub fn hash(self: Pos) u64 {
+            const ux: u32 = @bitCast(self.x);
+            const uz: u32 = @bitCast(self.z);
+            return @as(u64, @intCast(ux)) << 32 | @as(u64, @intCast(uz));
+        }
+        pub fn eql(self: Pos, other: Pos) bool {
+            return self.x == other.x and self.z == other.z;
+        }
     };
     const Node = struct {
         prev: ?*const Node = null,
         pos: Pos,
         g: f32 = 0, // accumulated cost
         h: f32 = 0, // heuristic cost
+
+        pub fn order(self: Node, other: Node) std.math.Order {
+            return std.math.order(self.g + self.h, other.g + other.h);
+        }
     };
-    fn lessThan(context: void, a: *const Node, b: *const Node) std.math.Order {
-        _ = context;
-        return std.math.order(a.g + a.h, b.g + b.h);
-    }
 
     const SeenSet = std.HashMap(*const Node, void, struct {
-        pub fn hash(self: @This(), item: *const Node) u64 {
-            _ = self; // autofix
-            const ux: u32 = @bitCast(item.pos.x);
-            const uz: u32 = @bitCast(item.pos.z);
-            return @as(u64, @intCast(ux)) << 32 | @as(u64, @intCast(uz));
+        pub fn hash(_: @This(), item: *const Node) u64 {
+            return item.pos.hash();
         }
-        pub fn eql(self: @This(), item1: *const Node, item2: *const Node) bool {
-            _ = self; // autofix
-            return item1.pos.x == item2.pos.x and item1.pos.z == item2.pos.z;
+        pub fn eql(_: @This(), item1: *const Node, item2: *const Node) bool {
+            return item1.pos.eql(item2.pos);
         }
     }, 80);
 
+    fn lessThan(_: void, a: *const Node, b: *const Node) std.math.Order {
+        return a.order(b.*);
+    }
     const FrontierQueue = std.PriorityQueue(*const Node, void, lessThan);
 
     frame_alloc: std.mem.Allocator,
@@ -159,7 +173,7 @@ const AStar = struct {
     max_sqr_distance_from_origin: u32 = 20,
 
     pub fn init(frame_alloc: std.mem.Allocator) AStar {
-        return AStar{
+        return .{
             .frontier = FrontierQueue.init(frame_alloc, {}),
             .seen = SeenSet.init(frame_alloc),
             .frame_alloc = frame_alloc,
@@ -202,6 +216,9 @@ const AStar = struct {
     pub fn findPath(self: *AStar, alloc: std.mem.Allocator, start: rl.Vector3, target: rl.Vector3) !?[]rl.Vector3 {
         const navStart = worldToNav(start);
         const navTarget = worldToNav(target);
+        if (navStart.eql(navTarget)) {
+            return null;
+        }
 
         if (navDist(navStart, navTarget) > self.max_sqr_distance_from_origin) {
             return null;
@@ -286,8 +303,7 @@ const AStar = struct {
         return neighbors[0..neighborsCount];
     }
 
-    fn reconstructPath(self: *AStar, alloc: std.mem.Allocator, node: *const Node) ![]rl.Vector3 {
-        _ = self; // autofix
+    fn reconstructPath(_: *AStar, alloc: std.mem.Allocator, node: *const Node) ![]rl.Vector3 {
         var path = std.ArrayList(rl.Vector3).init(alloc);
         errdefer path.deinit();
 
@@ -295,6 +311,7 @@ const AStar = struct {
 
         var activeNode: ?*const Node = node;
         while (activeNode) |nn| : (activeNode = nn.prev) {
+            if (nn.prev == null) break;
             try path.append(navToWorld(nn.pos));
         }
 

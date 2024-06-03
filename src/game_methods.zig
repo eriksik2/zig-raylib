@@ -4,12 +4,22 @@ const rl = @import("raylib");
 pub fn On(comptime Game: type) type {
     return struct {
         pub fn update(self: *Game) !void {
+            if (@hasDecl(Game, "preUpdate")) {
+                const res = self.preUpdate();
+                if (@typeInfo(@TypeOf(res)) == .ErrorUnion) try res;
+            }
+
             const ti: []const std.builtin.Type.StructField = @typeInfo(@TypeOf(self.modules)).Struct.fields;
             inline for (ti) |field| {
                 if (@hasDecl(field.type, "update")) {
                     const res = @field(self.modules, field.name).update();
                     if (@typeInfo(@TypeOf(res)) == .ErrorUnion) try res;
                 }
+            }
+
+            if (@hasDecl(Game, "postUpdate")) {
+                const res = self.postUpdate();
+                if (@typeInfo(@TypeOf(res)) == .ErrorUnion) try res;
             }
         }
 
@@ -20,12 +30,22 @@ pub fn On(comptime Game: type) type {
             rl.beginMode3D(self.camera.?.*);
             defer rl.endMode3D();
 
+            if (@hasDecl(Game, "preDraw")) {
+                const res = self.preDraw();
+                if (@typeInfo(@TypeOf(res)) == .ErrorUnion) try res;
+            }
+
             const ti: []const std.builtin.Type.StructField = @typeInfo(@TypeOf(self.modules)).Struct.fields;
             inline for (ti) |field| {
                 if (@hasDecl(field.type, "draw")) {
                     const res = @field(self.modules, field.name).draw();
                     if (@typeInfo(@TypeOf(res)) == .ErrorUnion) try res;
                 }
+            }
+
+            if (@hasDecl(Game, "postDraw")) {
+                const res = self.postDraw();
+                if (@typeInfo(@TypeOf(res)) == .ErrorUnion) try res;
             }
         }
     };

@@ -95,7 +95,7 @@ const Size = struct {
 
 pub fn initRandom(opts: struct {
     seed: i32 = 40712,
-    size: Size = .{ .x = 512, .z = 512 },
+    size: Size = .{ .x = 128, .z = 128 },
 }) !Self {
     const gen = znoise.FnlGenerator{
         .seed = opts.seed,
